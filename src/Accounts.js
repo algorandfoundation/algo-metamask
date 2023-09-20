@@ -33,7 +33,9 @@ This object is encrypted by metamask.
 // Function for Encrypting Data using TweetNaCl:
 function encryptNACL(secretKey, message) {
   const nonce = nacl.randomBytes(24);
-  const secretKeyUint8Array = new Uint8Array(secretKey);
+  
+  const secretKeyUint8Array = new Uint8Array(Buffer.from(secretKey, "base64")).slice(0,32);
+
   const messageUint8Array = new TextEncoder().encode(message);
 
   const encryptedMessage = nacl.secretbox(messageUint8Array, nonce, secretKeyUint8Array);
@@ -42,14 +44,18 @@ function encryptNACL(secretKey, message) {
   fullMessage.set(nonce);
   fullMessage.set(encryptedMessage, nonce.length);
 
-  const base64Encoded = buffer.from(fullMessage).toString('base64');
+  const base64Encoded = Buffer.from(fullMessage).toString("base64");
+
   return base64Encoded;
 }
 
 // Function for Decrypting Data using TweetNaCl:
 function decryptNACL(secretKey, encryptedData) {
-  const secretKeyUint8Array = new Uint8Array(secretKey);
-  const messageWithNonceAsBuffer = buffer.from(encryptedData, 'base64');
+
+   const secretKeyUint8Array = new Uint8Array(
+    Buffer.from(secretKey, "base64")
+  ).slice(0, 32); 
+  const messageWithNonceAsBuffer = Buffer.from(encryptedData, "base64");
   const messageWithNonceAsUint8Array = new Uint8Array(messageWithNonceAsBuffer);
 
   const nonce = messageWithNonceAsUint8Array.slice(0, 24);
@@ -130,7 +136,7 @@ export default class Accounts{
             else if(tempAccount.type === 'imported'){
                 const key = await this.#getencryptionKey();
                 let b64Seed = tempAccount.seed;
-                b64Seed = decryptNACL(b64Seed, key);
+                b64Seed = decryptNACL(key, b64Seed);
                 const seed = new Uint8Array(Buffer.from(b64Seed, 'base64'));
                 const keys = nacl.sign.keyPair.fromSeed(seed);
                 const Account = {}
@@ -264,7 +270,7 @@ export default class Accounts{
         const address = algo.encodeAddress(keys.publicKey);
         let b64Seed = Buffer.from(seed).toString('base64');
         const key = await this.#getencryptionKey();
-        const encryptedSeed = encryptNACL(b64Seed, key).toString();
+        const encryptedSeed = encryptNACL(key, b64Seed).toString();
 
 
         this.accounts[address] = {type: 'imported', seed:encryptedSeed, name:name, addr: address, swaps: []};
