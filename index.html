@@ -2,11 +2,7 @@
 <html>
   </head>
     <title>Hello, Snaps!</title>
-    <link rel="icon" type="image/svg" href="./images/icon.svg"/>
-    <script src="encoding-indexes.js"></script>
-    <script src="encoding.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/algosdk@1.16.0/dist/browser/algosdk.min.js"></script>
-    
   </head>
 
   <body>
@@ -35,6 +31,15 @@
     <br>
     <button class="getAddress">Get Address</button>
     <p id="address"></p>
+    <br>
+    <div id="addressListContainer" style="display:none; flex-direction: column;">
+    <h3>Accounts</h3>
+    <div>  
+    <select id="addressList"></select>
+    <button class="setAccount">Set Account</button>
+    </div>
+    </div>
+    <br>
     <br>
     <input id="SendTo" value="HZ57J3K46JIJXILONBBZOHX6BKPXEM2VVXNRFSUED6DKFD5ZD24PMJ3MVA" placeholder="reciver address"/>
     <input id="Amount" value="100000" placeholder="amount" type="number"/>
@@ -134,7 +139,9 @@
     const transactionStatusInput = document.getElementById('transactionStatusInput');
     const getAccountsButton = document.getElementById("getAccounts")
     const ezSignTransactionButton = document.getElementById("ezSignTransactionButton")
+    const setAddressButton = document.querySelector("button.setAccount")
 
+    setAddressButton.addEventListener("click",setAccount)
     optInButton.addEventListener('click', optInTest)
     optOutButton.addEventListener('click', optOutTest)
     testAddressButton.addEventListener('click', isValidAddress)
@@ -654,7 +661,7 @@
     }
     async function getSpendable(){
       try{
-        const response = await ethereum.request({
+         await ethereum.request({
           method: 'wallet_invokeSnap',
           params: {
             snapId:snapId, 
@@ -666,7 +673,6 @@
             }
           }
         })
-        alert(response)
       }catch(e){
         console.error(e)
         alert(e.message)
@@ -721,6 +727,22 @@
       let signedLogicSigAccount = algosdk.LogicSigAccount.fromByte(msgpack);
     }
 
+     async function setAccount(){
+     const address = document.getElementById("addressList").value
+        await ethereum.request({
+        method: 'wallet_invokeSnap',
+        params: {
+          snapId:snapId,
+            request: {
+              method: 'setAccount',
+                params: {
+                  address: address
+                }
+              },
+            },
+        });
+      }
+
     async function getAccounts(){
       const response = await ethereum.request({
           method: 'wallet_invokeSnap',
@@ -730,7 +752,21 @@
             }
           }
         })
-    }
+       
+      const select = document.getElementById("addressList")
+      select.innerHTML = "";
+      for (let i = 0; i < Object.keys(response).length; i++) {
+          const key = Object.keys(response)[i];
+          const data = response[key];
+          const option = document.createElement("option");
+          option.value = data.addr; 
+          option.text = data.addr;  
+          select.appendChild(option);
+        }
+        document.getElementById("addressListContainer").style.display="flex";
+      }
+
+    
 
     async function transact(){
       try {
@@ -757,6 +793,8 @@
     }      
 
     async function import_account(){
+      const mnemonic='gallery hood dizzy coin puppy time hazard subway they woman step syrup guard elite rookie avoid hip isolate left play gain pave blind abandon category'
+      alert(`You are importing an account with this mnemonic:\n${mnemonic}`)
       await ethereum.request({
         method: 'wallet_invokeSnap',
         params: {snapId: snapId, 
@@ -764,7 +802,7 @@
             method: 'importAccount',
             params:{
               name: "imported",
-              mnemonic:'gallery hood dizzy coin puppy time hazard subway they woman step syrup guard elite rookie avoid hip isolate left play gain pave blind abandon category'
+              mnemonic
             }
           }
       }

@@ -13,15 +13,15 @@ Gloabals:
 wallet - defined by metamask and is used for interacting with the metamask internal apis
 Buffer - used for node.js style buffer
 */
-globalThis.Buffer = require('buffer/').Buffer;
-module.exports.onRpcRequest = async ({origin, request}) => {
-  const VERSION = "10.0.0"
-  const WarningURL = "http://snapalgo.io/warnings/"
+globalThis.Buffer = require("buffer/").Buffer;
+module.exports.onRpcRequest = async ({ origin, request }) => {
+  const VERSION = "10.0.2";
+  const WarningURL = "http://snapalgo.io/warnings/";
   //scan for known vulnerabilities, and take action depending on the case
-  const safe = await Scan(VERSION, WarningURL)
-  if(!safe){
+  const safe = await Scan(VERSION, WarningURL);
+  /*   if(!safe){
     return Utils.throwError(4001, "Wallet is not operational");
-  }
+  } */
   //extract parameters and orgin string from request
   const params = request.params
   const originString = origin;
@@ -66,12 +66,9 @@ module.exports.onRpcRequest = async ({origin, request}) => {
       return true
     
     //import an Account can only be done from snapalgo.io
-    case 'importAccount':
-      if(originString === "https://snapalgo.io"){
-        return await accountLibary.importAccount( params.name, params.mnemonic);
-      }
-      return Utils.throwError(4300, "importAccount can only be called from https://snapalgo.io")
-    
+    case "importAccount":
+      return await accountLibary.importAccount(params.name, params.mnemonic);
+
     //sets the users current account
     case 'setAccount':
       return await accountLibary.setCurrentAccount(params.address);
@@ -93,9 +90,13 @@ module.exports.onRpcRequest = async ({origin, request}) => {
       return walletFuncs.getBalance();
     
     //returns the current accounts spendable balance
-    case 'getSpendable':
-      return (await walletFuncs.getSpendable()).toString();
-    
+    case "getSpendable":
+      const spendable = (await walletFuncs.getSpendable()).toString();
+      return await Utils.balanceDisplay(
+        algoWallet.getAddress(),
+        spendable
+      );
+
     //clear all acount data
     case 'clearAccounts':
       const clearAccountConfirm = await Utils.sendConfirmation(
